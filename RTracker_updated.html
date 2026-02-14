@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Compounding Investment Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
+  input[type=number] { width: 130px; padding: 6px; }
+  input[type=range] { width: 300px; }
+  .row { margin-bottom: 14px; }
+  .milestone { font-weight: bold; margin-top: 6px; }
+  canvas { margin-top: 30px; }
+</style>
+</head>
+
+<body>
+
+<h2>How Much Do I Need To Save?</h2>
+
+<div class="row">
+  Current Savings: $ <input id="currentSaved" type="number" value="0" min="0" step="100">
+</div>
+
+<div class="row">
+  Salary: $ <input id="salary" type="number" value="200000" min="0" step="1000">
+</div>
+
+<div class="row">
+  Savings Rate:
+  <input type="range" id="saveRate" min="1" max="50" value="15">
+  <span id="saveRateDisplay">15%</span>
+</div>
+
+<div class="row">
+  Annual Return:
+  <input id="returnRate" type="number" value="10" min="0" step="0.1"> %
+</div>
+
+<div class="row">
+  Years Invested:
+  <input id="years" type="number" value="40" min="1" step="1">
+</div>
+
+<h3>Results</h3>
+<p>Total Contributions (from salary): $<span id="contributions"></span></p>
+<p>Final Portfolio Value: $<span id="finalValue"></span></p>
+
+<h3>Financial Milestones</h3>
+<p class="milestone">📈 Earnings exceed contributions: <span id="m1"></span></p>
+<p class="milestone">💼 Earnings exceed salary: <span id="m2"></span></p>
+<p class="milestone">🏖️ Portfolio exceeds salary: <span id="m3"></span></p>
+
+<canvas id="growthChart"></canvas>
+
+<script>
+let chart;
+
+function calculate() {
+  const currentSaved = +currentSavedInput.value || 0;
+  const salary = +salaryInput.value || 0;
+  const saveRate = (+saveRateInput.value || 0) / 100;
+  const returnRate = (+returnRateInput.value || 0) / 100;
+  const years = +yearsInput.value || 0;
+
+  const annualContribution = salary * saveRate;
+
+  let balance = currentSaved;
+  let contributions = 0;
+  let data = [];
+
+  let m1 = null, m2 = null, m3 = null;
+
+  for (let year = 1; year <= years; year++) {
+    // Contribute through the year, then apply growth (simple annual model)
+    const earnings = (balance + annualContribution) * returnRate;
+    balance += annualContribution + earnings;
+    contributions += annualContribution;
+    data.push(Math.round(balance));
+
+    if (!m1 && earnings > annualContribution) m1 = year;
+    if (!m2 && earnings > salary) m2 = year;
+    if (!m3 && balance > salary) m3 = year;
+  }
+
+  contributionsSpan.textContent = contributions.toLocaleString();
+  finalValueSpan.textContent = balance.toLocaleString();
+
+  m1Span.textContent = m1 ? `Year ${m1}` : "Not reached";
+  m2Span.textContent = m2 ? `Year ${m2}` : "Not reached";
+  m3Span.textContent = m3 ? `Year ${m3}` : "Not reached";
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(growthChart, {
+    type: "line",
+    data: {
+      labels: [...Array(years).keys()].map(i => i + 1),
+      datasets: [{ label: "Portfolio Value", data: data, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+}
+
+const currentSavedInput = document.getElementById("currentSaved");
+const salaryInput = document.getElementById("salary");
+const saveRateInput = document.getElementById("saveRate");
+const returnRateInput = document.getElementById("returnRate");
+const yearsInput = document.getElementById("years");
+
+const contributionsSpan = document.getElementById("contributions");
+const finalValueSpan = document.getElementById("finalValue");
+const m1Span = document.getElementById("m1");
+const m2Span = document.getElementById("m2");
+const m3Span = document.getElementById("m3");
+const growthChart = document.getElementById("growthChart");
+const saveRateDisplay = document.getElementById("saveRateDisplay");
+
+saveRateInput.addEventListener("input", () => {
+  saveRateDisplay.textContent = saveRateInput.value + "%";
+  calculate();
+});
+
+document.querySelectorAll("input").forEach(el =>
+  el.addEventListener("input", calculate)
+);
+
+calculate();
+</script>
+
+</body>
+</html>
